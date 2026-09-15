@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分數進位、退位</title>
+  <!-- 引入 html2canvas 庫以支援下載報告圖片 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --header-bg: #2C5282;
+      --body-bg: #EDF2F7;
+      --card-bg: #FFFFFF;
+      --primary-color: #3182CE;
+      --primary-hover: #2B6CB0;
+      --success-color: #2F855A;
+      --btn-green: #38A169;
+      --btn-green-hover: #2F855A;
+      --btn-purple: #8B5CF6;
+      --btn-blue: #38BDF8;
+      --btn-gray: #6B7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--body-bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 頂部導航欄 */
+    header {
+      background-color: var(--header-bg);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: relative;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+
+    /* 語言選單設計 */
+    .lang-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .lang-select {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.8);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 28px;
+    }
+
+    .lang-container::after {
+      content: '▼';
+      font-size: 0.6rem;
+      color: white;
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .lang-select option {
+      background-color: white;
+      color: #333;
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 750px;
+      margin: 0 auto;
+    }
+
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+
+    /* ===== 首頁樣式 ===== */
+    .home-title {
+      text-align: center;
+      font-size: 1.8rem;
+      color: #2D3748;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+
+    .grid-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .card-option {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card-option:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+
+    .card-option h2 {
+      color: #1A365D;
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+    }
+
+    .card-option p {
+      color: #718096;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    /* ===== 返回階段選擇按鈕 ===== */
+    .btn-back {
+      background: white;
+      border: 1px solid #CBD5E0;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #4A5568;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+      transition: background 0.2s;
+    }
+
+    .btn-back:hover {
+      background-color: #F7FAFC;
+    }
+
+    /* ===== 答題頁面卡片 ===== */
+    .quiz-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #EDF2F7;
+      padding-bottom: 12px;
+      margin-bottom: 25px;
+    }
+
+    .quiz-progress {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #3182CE;
+    }
+
+    .quiz-level-tag {
+      background: #EBF8FF;
+      color: #2B6CB0;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    /* 題目與分數表達式 CSS */
+    .question-display {
+      font-size: 2.2rem;
+      text-align: center;
+      margin: 25px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    /* ===== 統一規範的分數樣式 ===== */
+    .math-fraction {
+      display: inline-flex;
+      flex-direction: column;
+      vertical-align: middle;
+      text-align: center;
+      font-size: 1.6rem;
+      line-height: 1.1;
+      margin: 0 2px;
+    }
+
+    .math-fraction .num {
+      border-bottom: 2px solid currentColor;
+      padding: 0 4px;
+    }
+
+    .math-fraction .den {
+      padding: 0 4px;
+    }
+
+    .mixed-num {
+      display: inline-flex;
+      align-items: center;
+      font-size: 1.6rem;
+      gap: 4px;
+    }
+
+    /* 輸入區域 */
+    .answer-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    .equals-sign {
+      font-size: 2.2rem;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .no-simplify-text {
+      font-size: 1.1rem;
+      color: #4A5568;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+
+    /* 輸入框 CSS 及隱藏微調箭頭 */
+    .input-whole, .input-num, .input-den {
+      width: 65px;
+      height: 52px;
+      text-align: center;
+      font-size: 1.4rem;
+      border: 1.5px solid #CBD5E0;
+      border-radius: 8px;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+
+    .input-whole::-webkit-outer-spin-button,
+    .input-whole::-webkit-inner-spin-button,
+    .input-num::-webkit-outer-spin-button,
+    .input-num::-webkit-inner-spin-button,
+    .input-den::-webkit-outer-spin-button,
+    .input-den::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .input-whole::placeholder,
+    .input-num::placeholder,
+    .input-den::placeholder {
+      font-size: 0.85rem;
+      color: #A0AEC0;
+    }
+
+    .input-whole:focus, .input-num:focus, .input-den:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+    }
+
+    .fraction-input-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .fraction-input-group .line {
+      width: 100%;
+      height: 2px;
+      background: #000;
+      margin: 3px 0;
+    }
+
+    /* 提交答案按鈕 */
+    .btn-submit {
+      width: 100%;
+      background-color: #3182CE;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background-color: #2B6CB0;
+    }
+
+    /* 滿版「再答一題」按鈕 */
+    .btn-next-full {
+      width: 100%;
+      background-color: var(--btn-green);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+      margin-bottom: 15px;
+    }
+
+    .btn-next-full:hover {
+      background-color: var(--btn-green-hover);
+    }
+
+    /* 靠左「再答一題」按鈕 */
+    .btn-next-left {
+      background-color: var(--btn-green);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 15px;
+    }
+
+    .btn-next-left:hover {
+      background-color: var(--btn-green-hover);
+    }
+
+    /* ===== 解題提示區塊 ===== */
+    .feedback-box {
+      margin-top: 15px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      display: none;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    /* 答對讚賞框 */
+    .feedback-box.green-praise {
+      background-color: #D1FAE5;
+      border: 1px solid #A7F3D0;
+      color: #065F46;
+      text-align: center;
+      font-weight: bold;
+      padding: 14px;
+    }
+
+    /* 黃色底色 (第 1-2 次答錯) */
+    .feedback-box.yellow-hint {
+      background-color: #FEF3C7;
+      border: 1px solid #FCD34D;
+      color: #92400E;
+    }
+
+    /* 紅色底色 (第 3 次答錯) */
+    .feedback-box.red-hint {
+      background-color: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      color: #991B1B;
+    }
+
+    /* 解題步驟算式區域 */
+    .step-equation {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+      font-size: 1.4rem;
+      flex-wrap: wrap;
+    }
+
+    /* 圖解外框 */
+    .diagram-box {
+      margin-top: 15px;
+      border: 2px dashed #6366F1;
+      border-radius: 10px;
+      padding: 15px;
+      background: white;
+      text-align: center;
+    }
+
+    .diagram-title {
+      font-size: 0.95rem;
+      color: #4F46E5;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .diagram-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .diagram-step {
+      border: 1px dashed #3B82F6;
+      border-radius: 8px;
+      padding: 8px 14px;
+      background: #F0F9FF;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .diagram-arrow {
+      color: #9CA3AF;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    /* ===== 分析報告頁面 ===== */
+    .report-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      max-width: 480px;
+      margin: 0 auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .report-title {
+      text-align: center;
+      color: #2B6CB0;
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .info-section, .score-section {
+      background: #F7FAFC;
+      border-radius: 8px;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    .info-row, .score-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: #4A5568;
+    }
+
+    .border-dashed {
+      border-bottom: 1px dashed #CBD5E0;
+      padding-bottom: 8px;
+    }
+
+    .section-label {
+      font-weight: bold;
+      color: #2D3748;
+      margin: 15px 0 10px 0;
+      font-size: 0.95rem;
+    }
+
+    .mastery-box {
+      background: #F7FAFC;
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #4A5568;
+      margin-bottom: 15px;
+    }
+
+    .question-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .q-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .q-item.correct {
+      background-color: #E6FFFA;
+      border: 1px solid #B2F5EA;
+      color: #234E52;
+    }
+
+    .q-item.incorrect {
+      background-color: #FFF5F5;
+      border: 1px solid #FEB2B2;
+      color: #742A2A;
+    }
+
+    .report-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-report {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-download { background-color: var(--btn-purple); }
+    .btn-retry { background-color: var(--btn-blue); }
+    .btn-home { background-color: var(--btn-gray); }
+
+    /* Modal 彈窗 */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .modal-btn-confirm { background-color: var(--primary-color); color: white; }
+    .modal-btn-cancel { background-color: #E2E8F0; color: #4A5568; }
+
+  </style>
+</head>
+<body>
+
+  <!-- 頂部導航欄 -->
+  <header>
+    <div class="header-title" id="headerTitle">分數進位、退位</div>
+    <div class="lang-container" id="langContainer">
+      <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="zh">繁體中文</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- 1. 首頁 (HomePage) -->
+      <div id="homePage" class="page active">
+        <h1 class="home-title" id="homeTitle">請選擇學習單元</h1>
+        <div class="grid-options">
+          <div class="card-option" onclick="startQuiz('carry')">
+            <h2 id="opt1Title">分數進位</h2>
+            <p id="opt1Desc">將假分數轉換並進位成正確的帶分數。包含初階、中階及高階進位練習。</p>
+          </div>
+          <div class="card-option" onclick="startQuiz('borrow')">
+            <h2 id="opt2Title">分數退位</h2>
+            <p id="opt2Desc">進行帶分數借位轉換，轉換成假分數（或有整數的假分數），掌握分數退位技巧。</p>
+          </div>
+          <div class="card-option" onclick="startQuiz('mixed')">
+            <h2 id="opt3Title">綜合挑戰</h2>
+            <p id="opt3Desc">混合分數進位與退位題型，全面鞏固分數概念轉換能力。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 答題頁面 (QuizPage) -->
+      <div id="quizPage" class="page">
+        <!-- 返回階段選擇按鈕 -->
+        <button class="btn-back" onclick="goHome()">
+          ← <span id="btnBackText">返回階段選擇</span>
+        </button>
+
+        <div class="quiz-card">
+          <div class="quiz-header">
+            <span class="quiz-progress" id="quizProgress">題目 1 / 10</span>
+            <span class="quiz-level-tag" id="levelTag">初階</span>
+          </div>
+
+          <!-- 題目顯示區 -->
+          <div class="question-display" id="questionDisplay">
+            <!-- 動態生成題目 -->
+          </div>
+
+          <!-- 作答輸入區 (限制正整數, 無微調箭頭) -->
+          <div class="answer-area">
+            <span class="equals-sign" id="equalsSign" style="display:inline;">=</span>
+            <input type="number" min="0" inputmode="numeric" class="input-whole" id="ansWhole" placeholder="整數" oninput="limitPositiveInt(this)">
+            <div class="fraction-input-group">
+              <input type="number" min="0" inputmode="numeric" class="input-num" id="ansNum" placeholder="分子" oninput="limitPositiveInt(this)">
+              <div class="line"></div>
+              <input type="number" min="0" inputmode="numeric" class="input-den" id="ansDen" placeholder="分母" oninput="limitPositiveInt(this)">
+            </div>
+            <span class="no-simplify-text" id="noSimplifyText" style="display:inline;">(不用約簡)</span>
+          </div>
+
+          <!-- 提交答案按鈕 -->
+          <button class="btn-submit" id="btnSubmit" onclick="checkAnswer()">提交答案</button>
+
+          <!-- 滿版「再答一題」按鈕 -->
+          <button class="btn-next-full" id="btnNextFull" style="display:none;" onclick="nextQuestion()">
+            <span class="btnNextText">再答一題</span> ➔
+          </button>
+
+          <!-- 回饋解題提示區塊 -->
+          <div class="feedback-box" id="feedbackBox">
+            <div id="feedbackContent"></div>
+            <!-- 靠左「再答一題」按鈕 -->
+            <button class="btn-next-left" id="btnNextLeft" style="display:none;" onclick="nextQuestion()">
+              <span class="btnNextText">再答一題</span> ➔
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 分析報告頁面 (ReportPage) -->
+      <div id="reportPage" class="page">
+        <div class="report-card" id="reportCardArea">
+          <div class="report-title" id="repTitle">練習完成！表現分析報告</div>
+          
+          <div class="info-section">
+            <div class="info-row border-dashed">
+              <span id="lblStartTime">開始時間：</span>
+              <span id="valStartTime">15/09/2026 07:30:24</span>
+            </div>
+            <div class="info-row border-dashed">
+              <span id="lblEndTime">完成時間：</span>
+              <span id="valEndTime">15/09/2026 07:30:48</span>
+            </div>
+            <div class="info-row">
+              <span id="lblDuration">總用時：</span>
+              <span id="valDuration">24秒</span>
+            </div>
+          </div>
+
+          <div class="score-section">
+            <div class="score-row border-dashed">
+              <span id="lblCorrectCount">總答對題數：</span>
+              <span id="valCorrectCount">3 / 10</span>
+            </div>
+            <div class="score-row">
+              <span id="lblAccuracy">整體正確率：</span>
+              <span id="valAccuracy">30%</span>
+            </div>
+          </div>
+
+          <div class="section-label" id="lblMasteryTitle">各主題掌握度分析</div>
+          <div class="mastery-box">
+            <span id="valCategoryName">1. 分數進位</span>
+            <span id="valCategoryScore">3 / 10 (30%)</span>
+          </div>
+
+          <div class="section-label" style="color: var(--success-color);" id="lblCorrectHeader">☑ 答對的題目</div>
+          <div class="question-list" id="correctList"></div>
+
+          <div class="section-label" style="color: #E53E3E;" id="lblWrongHeader">✕ 答錯 / 需要協助的題目</div>
+          <div class="question-list" id="wrongList"></div>
+
+          <div class="report-actions">
+            <button class="btn-report btn-download" onclick="downloadReportImage()" id="btnDownload">
+              💾 <span id="btnDownloadText">下載報告圖片</span>
+            </button>
+            <button class="btn-report btn-retry" onclick="confirmRetryModal()" id="btnRetry">
+              🔄 <span id="btnRetryText">我想再試</span>
+            </button>
+            <button class="btn-report btn-home" onclick="goHome()" id="btnHome">
+              🏠 <span id="btnHomeText">回到主頁重新選擇</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal 彈窗 -->
+  <div class="modal-overlay" id="retryModal">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-bottom: 10px;">重新開始練習？</h3>
+      <p id="modalDesc" style="color: #718096; font-size: 0.95rem;">這將會重置目前的練習進度並生成新的題目。</p>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()" id="btnModalCancel">取消</button>
+        <button class="modal-btn modal-btn-confirm" onclick="restartQuiz()" id="btnModalConfirm">確定再試</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 多語言字典
+    const translations = {
+      zh: {
+        headerTitle: "分數進位、退位",
+        homeTitle: "請選擇學習單元",
+        opt1Title: "分數進位",
+        opt1Desc: "將假分數轉換並進位成正確的帶分數。包含初階、中階及高階進位練習。",
+        opt2Title: "分數退位",
+        opt2Desc: "進行帶分數借位轉換，轉換成假分數（或有整數的假分數），掌握分數退位技巧。",
+        opt3Title: "綜合挑戰",
+        opt3Desc: "混合分數進位與退位題型，全面鞏固分數概念轉換能力。",
+        btnBackText: "返回階段選擇",
+        phWhole: "整數",
+        phNum: "分子",
+        phDen: "分母",
+        levelEasy: "初階",
+        levelMid: "中階",
+        levelHard: "高階 (退位2次)",
+        progress: "題目 {curr} / {total}",
+        submit: "提交答案",
+        nextQuestion: "再答一題",
+        praise: ["真聰明！完全掌握了技巧！💪", "太棒了！答對了！🎉", "做得好！完全正確！👏", "真聰明！繼續保持！🌟"],
+        yellowIntro: "沒關係，重新算算看，你可以的！",
+        hintCarry: "解題思路：將假分數的分子除以分母，得出的商數加到整數部分，餘數作為新的分子。",
+        hintBorrow: "解題思路：向整數部分借位，化為與分母相同的分數並加到分子上，轉換成假分數。",
+        redIntro: "別擔心！這題的完整解題過程如下：",
+        diagramTitleCarry: "圖解分數進位：",
+        diagramTitleBorrow: "圖解分數退位：",
+        diagramStepCarry: "分子 {num} ÷ {den} = 進位 {carry}，餘 {rem}",
+        diagramStepBorrow1: "整數借 1 化成 {den}/{den} 加到分子",
+        diagramStepBorrow2: "整數借 2 化成 {doubleDen}/{den} 加到分子",
+        lblCarry: "進位：",
+        lblBorrow: "退位",
+        correctAnsLabel: "正確答案：",
+        repTitle: "練習完成！表現分析報告",
+        lblStartTime: "開始時間：",
+        lblEndTime: "完成時間：",
+        lblDuration: "總用時：",
+        lblCorrectCount: "總答對題數：",
+        lblAccuracy: "整體正確率：",
+        lblMasteryTitle: "各主題掌握度分析",
+        lblCorrectHeader: "☑ 答對的題目",
+        lblWrongHeader: "✕ 答錯 / 需要協助的題目",
+        btnDownloadText: "下載報告圖片",
+        btnRetryText: "我想再試",
+        btnHomeText: "回到主頁重新選擇",
+        modalTitle: "重新開始練習？",
+        modalDesc: "這將會重置目前的練習進度並生成新的題目。",
+        modalCancel: "取消",
+        modalConfirm: "確定再試",
+        noSimplify: "(不用約簡)",
+        borrowTimes1: "(退位 1 次)",
+        borrowTimes2: "(退位 2 次)"
+      },
+      en: {
+        headerTitle: "Fraction Carrying & Borrowing",
+        homeTitle: "Select Learning Unit",
+        opt1Title: "Fraction Carrying",
+        opt1Desc: "Convert improper fractions into mixed numbers. Includes basic, intermediate & advanced levels.",
+        opt2Title: "Fraction Borrowing",
+        opt2Desc: "Convert mixed numbers into improper fractions through borrowing.",
+        opt3Title: "Mixed Challenge",
+        opt3Desc: "A practice combining both carrying and borrowing fraction skills.",
+        btnBackText: "Back to Unit Selection",
+        phWhole: "Whole",
+        phNum: "Num",
+        phDen: "Den",
+        levelEasy: "Basic",
+        levelMid: "Intermediate",
+        levelHard: "Advanced (Borrow x2)",
+        progress: "Question {curr} / {total}",
+        submit: "Submit Answer",
+        nextQuestion: "Next Question",
+        praise: ["Brilliant! Mastered the skill! 💪", "Awesome! Correct! 🎉", "Great job! Perfectly right! 👏", "Brilliant! Keep going! 🌟"],
+        yellowIntro: "It's okay! Try again, you can do it!",
+        hintCarry: "Hint: Divide numerator by denominator. Add quotient to whole part, remainder becomes new numerator.",
+        hintBorrow: "Hint: Borrow from the whole number, convert it into a fraction matching denominator, and add to numerator.",
+        redIntro: "Don't worry! Here is the step-by-step solution:",
+        diagramTitleCarry: "Diagram for Carrying:",
+        diagramTitleBorrow: "Diagram for Borrowing:",
+        diagramStepCarry: "Numerator {num} ÷ {den} = Carry {carry}, Remainder {rem}",
+        diagramStepBorrow1: "Borrow 1 convert to {den}/{den} and add to numerator",
+        diagramStepBorrow2: "Borrow 2 convert to {doubleDen}/{den} and add to numerator",
+        lblCarry: "Carry:",
+        lblBorrow: "Borrow",
+        correctAnsLabel: "Correct Answer:",
+        repTitle: "Completed! Performance Report",
+        lblStartTime: "Start Time:",
+        lblEndTime: "End Time:",
+        lblDuration: "Total Duration:",
+        lblCorrectCount: "Correct Questions:",
+        lblAccuracy: "Overall Accuracy:",
+        lblMasteryTitle: "Topic Mastery Analysis",
+        lblCorrectHeader: "☑ Correct Questions",
+        lblWrongHeader: "✕ Incorrect / Assisted Questions",
+        btnDownloadText: "Download Report Image",
+        btnRetryText: "I want to try again",
+        btnHomeText: "Return to Home",
+        modalTitle: "Restart Practice?",
+        modalDesc: "This will reset current progress and generate new questions.",
+        modalCancel: "Cancel",
+        modalConfirm: "Confirm Retry",
+        noSimplify: "(No simplification needed)",
+        borrowTimes1: "(Borrow 1 time)",
+        borrowTimes2: "(Borrow 2 times)"
+      }
+    };
+
+    let currentLang = 'zh';
+    let currentMode = 'carry'; 
+    let questions = [];
+    let currentQIndex = 0;
+    let wrongAttempts = 0;
+    let startTime, endTime;
+    let userRecords = [];
+
+    // 限制輸入為非負整數
+    function limitPositiveInt(input) {
+      input.value = input.value.replace(/[^0-9]/g, '');
+    }
+
+    // 切換語言
+    function changeLanguage(lang) {
+      currentLang = lang;
+      const t = translations[lang];
+
+      document.getElementById('headerTitle').innerText = t.headerTitle;
+      document.getElementById('homeTitle').innerText = t.homeTitle;
+      document.getElementById('opt1Title').innerText = t.opt1Title;
+      document.getElementById('opt1Desc').innerText = t.opt1Desc;
+      document.getElementById('opt2Title').innerText = t.opt2Title;
+      document.getElementById('opt2Desc').innerText = t.opt2Desc;
+      document.getElementById('opt3Title').innerText = t.opt3Title;
+      document.getElementById('opt3Desc').innerText = t.opt3Desc;
+
+      document.getElementById('btnBackText').innerText = t.btnBackText;
+
+      // 調整輸入框 Placeholder
+      document.getElementById('ansWhole').placeholder = t.phWhole;
+      document.getElementById('ansNum').placeholder = t.phNum;
+      document.getElementById('ansDen').placeholder = t.phDen;
+
+      // 提示文字更新
+      document.getElementById('noSimplifyText').innerText = t.noSimplify;
+
+      // 按鈕文字更新
+      document.querySelectorAll('.btnNextText').forEach(el => el.innerText = t.nextQuestion);
+      document.getElementById('btnSubmit').innerText = t.submit;
+
+      // 報告頁面
+      document.getElementById('repTitle').innerText = t.repTitle;
+      document.getElementById('lblStartTime').innerText = t.lblStartTime;
+      document.getElementById('lblEndTime').innerText = t.lblEndTime;
+      document.getElementById('lblDuration').innerText = t.lblDuration;
+      document.getElementById('lblCorrectCount').innerText = t.lblCorrectCount;
+      document.getElementById('lblAccuracy').innerText = t.lblAccuracy;
+      document.getElementById('lblMasteryTitle').innerText = t.lblMasteryTitle;
+      document.getElementById('lblCorrectHeader').innerText = t.lblCorrectHeader;
+      document.getElementById('lblWrongHeader').innerText = t.lblWrongHeader;
+      document.getElementById('btnDownloadText').innerText = t.btnDownloadText;
+      document.getElementById('btnRetryText').innerText = t.btnRetryText;
+      document.getElementById('btnHomeText').innerText = t.btnHomeText;
+
+      // Modal
+      document.getElementById('modalTitle').innerText = t.modalTitle;
+      document.getElementById('modalDesc').innerText = t.modalDesc;
+      document.getElementById('btnModalCancel').innerText = t.modalCancel;
+      document.getElementById('btnModalConfirm').innerText = t.modalConfirm;
+
+      if(questions.length > 0 && currentQIndex < questions.length) {
+        showQuestion();
+      }
+    }
+
+    // 生成 10 道題（符合比例要求且不重複）
+    function generate10Questions(mode) {
+      let result = [];
+      let usedKeys = new Set();
+      
+      // 規範：若為退位或綜合模式中的退位，要求 3 題初階、4 題中階、3 題高階
+      let levels = ['easy', 'easy', 'easy', 'mid', 'mid', 'mid', 'mid', 'hard', 'hard', 'hard'];
+
+      // 洗牌函數以確保每題出現順序隨機
+      levels.sort(() => Math.random() - 0.5);
+
+      levels.forEach((lvl) => {
+        let q;
+        let key;
+        let attempts = 0;
+        do {
+          q = generateSingleQuestion(mode, lvl);
+          key = `${q.type}_${q.initWhole}_${q.initNum}_${q.initDen}_${q.borrowTimes}`;
+          attempts++;
+        } while(usedKeys.has(key) && attempts < 200);
+
+        usedKeys.add(key);
+        result.push(q);
+      });
+
+      return result;
+    }
+
+    // 生成單題
+    function generateSingleQuestion(mode, level) {
+      let subMode = mode;
+      if (mode === 'mixed') {
+        subMode = Math.random() < 0.5 ? 'carry' : 'borrow';
+      }
+
+      let initWhole = 0, initNum = 1, initDen = 2;
+      let targetWhole = 0, targetNum = 1, targetDen = 2;
+      let borrowTimes = 1;
+
+      if (subMode === 'carry') {
+        if (level === 'easy') {
+          // 初階：個位數 (3~9)
+          initDen = Math.floor(Math.random() * 7) + 3; // 3~9
+          let rem = Math.floor(Math.random() * (initDen - 1)) + 1;
+          initNum = initDen + rem;
+          if(initNum > 9) initNum = 9; 
+          if(initNum <= initDen) initNum = initDen + 1;
+          initWhole = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 2) + 1;
+
+        } else if (level === 'mid') {
+          // 中階：兩位數 (10~24)
+          initDen = Math.floor(Math.random() * 15) + 10; 
+          initWhole = Math.floor(Math.random() * 3) + 1;
+          let rem = Math.floor(Math.random() * (initDen - 1)) + 1;
+          initNum = initDen + rem;
+
+        } else {
+          // 高階：進位2次
+          initDen = Math.floor(Math.random() * 6) + 4; 
+          initWhole = Math.floor(Math.random() * 3) + 1;
+          let rem = Math.floor(Math.random() * (initDen - 1)) + 1;
+          initNum = initDen * 2 + rem; 
+        }
+
+        let totalNum = initWhole * initDen + initNum;
+        targetWhole = Math.floor(totalNum / initDen);
+        targetNum = totalNum % initDen;
+        targetDen = initDen;
+
+      } else {
+        // ===== 退位題型 =====
+        if (level === 'easy') {
+          // 初階：生成的題目是整數 (分子為 0)
+          initDen = Math.floor(Math.random() * 15) + 2; // 分母 2~16
+          initNum = 0; // 分子為 0，代表純整數
+          initWhole = Math.floor(Math.random() * 5) + 2; // 整數 2~6
+          borrowTimes = 1;
+
+          targetWhole = initWhole - 1;
+          targetNum = initDen;
+          targetDen = initDen;
+
+        } else if (level === 'mid') {
+          // 中階：分子分母皆為一位或兩位數
+          initDen = Math.floor(Math.random() * 25) + 5; // 5~29 (涵蓋1位數與2位數)
+          initNum = Math.floor(Math.random() * (initDen - 1)) + 1; 
+          initWhole = Math.floor(Math.random() * 4) + 2; // 整數 2~5
+          borrowTimes = 1;
+
+          targetWhole = initWhole - 1;
+          targetNum = initNum + initDen;
+          targetDen = initDen;
+
+        } else {
+          // 高階：分子分母可為一位或兩位數，且需要退位 2 次
+          initDen = Math.floor(Math.random() * 20) + 4; // 4~23
+          initNum = Math.floor(Math.random() * (initDen - 1)) + 1;
+          initWhole = Math.floor(Math.random() * 4) + 3; // 整數至少為 3 才能退位 2 次
+          borrowTimes = 2;
+
+          targetWhole = initWhole - 2;
+          targetNum = initNum + (initDen * 2);
+          targetDen = initDen;
+        }
+      }
+
+      return {
+        level,
+        type: subMode,
+        initWhole,
+        initNum,
+        initDen,
+        targetWhole,
+        targetNum,
+        targetDen,
+        borrowTimes
+      };
+    }
+
+    // 開始練習
+    function startQuiz(mode) {
+      currentMode = mode;
+      questions = generate10Questions(mode);
+      currentQIndex = 0;
+      wrongAttempts = 0;
+      userRecords = [];
+      startTime = new Date();
+
+      document.getElementById('langContainer').style.display = 'none';
+      switchPage('quizPage');
+      showQuestion();
+    }
+
+    // 顯示題目
+    function showQuestion() {
+      wrongAttempts = 0;
+      const q = questions[currentQIndex];
+      const t = translations[currentLang];
+
+      let levelText = t.levelEasy;
+      if (q.level === 'mid') levelText = t.levelMid;
+      if (q.level === 'hard') levelText = t.levelHard;
+
+      document.getElementById('quizProgress').innerText = t.progress.replace('{curr}', currentQIndex + 1).replace('{total}', 10);
+      document.getElementById('levelTag').innerText = levelText;
+
+      // 渲染題目 HTML
+      let qHtml = '';
+      if (q.type === 'carry') {
+        qHtml = `<span style="font-size:1.3rem; margin-right:12px; font-weight:bold; color:#2D3748;">${t.lblCarry}</span>`;
+        qHtml += renderFractionHTML(q.initWhole, q.initNum, q.initDen);
+      } else {
+        let timesText = q.borrowTimes === 2 ? t.borrowTimes2 : t.borrowTimes1;
+        qHtml = `<span style="font-size:1.3rem; margin-right:8px; font-weight:bold; color:#2D3748;">${t.lblBorrow} <small style="color:#2B6CB0; font-size:0.95rem;">${timesText}</small>：</span>`;
+        qHtml += renderFractionHTML(q.initWhole, q.initNum, q.initDen);
+      }
+
+      document.getElementById('questionDisplay').innerHTML = qHtml;
+
+      // 清空輸入欄
+      document.getElementById('ansWhole').value = '';
+      document.getElementById('ansNum').value = '';
+      document.getElementById('ansDen').value = '';
+      
+      document.getElementById('feedbackBox').style.display = 'none';
+      document.getElementById('btnSubmit').style.display = 'block';
+      document.getElementById('btnNextFull').style.display = 'none';
+      document.getElementById('btnNextLeft').style.display = 'none';
+    }
+
+    // 統一規範渲染 HTML 結構分數
+    function renderFractionHTML(whole, num, den) {
+      let html = '';
+      if (num === 0) {
+        // 如果分子為0，僅顯示整數
+        html += `<div class="mixed-num"><span>${whole}</span></div>`;
+      } else if (whole > 0) {
+        html += `<div class="mixed-num"><span>${whole}</span><div class="math-fraction"><span class="num">${num}</span><span class="den">${den}</span></div></div>`;
+      } else {
+        html += `<div class="math-fraction"><span class="num">${num}</span><span class="den">${den}</span></div>`;
+      }
+      return html;
+    }
+
+    // 檢查答案
+    function checkAnswer() {
+      const q = questions[currentQIndex];
+      const t = translations[currentLang];
+
+      const userW = parseInt(document.getElementById('ansWhole').value) || 0;
+      const userN = parseInt(document.getElementById('ansNum').value) || 0;
+      const userD = parseInt(document.getElementById('ansDen').value) || 0;
+
+      // 判定是否正確：支援全假分數 (如 0 8/3) 或帶整數之假分數 (如 1 5/3) 等等效表達，但要求分母相同
+      const totalUserVal = userW * userD + userN;
+      const totalTargetVal = q.targetWhole * q.targetDen + q.targetNum;
+
+      const isCorrect = (userD === q.targetDen && totalUserVal === totalTargetVal);
+
+      const feedbackBox = document.getElementById('feedbackBox');
+      const feedbackContent = document.getElementById('feedbackContent');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnNextFull = document.getElementById('btnNextFull');
+      const btnNextLeft = document.getElementById('btnNextLeft');
+
+      if (isCorrect) {
+        // ===== 答對 =====
+        btnSubmit.style.display = 'none';
+        btnNextFull.style.display = 'flex'; // 顯示滿版「再答一題 →」按鈕
+
+        feedbackBox.style.display = 'block';
+        feedbackBox.className = 'feedback-box green-praise';
+        
+        const praiseMsg = t.praise[Math.floor(Math.random() * t.praise.length)];
+        feedbackContent.innerHTML = praiseMsg;
+
+        if (!userRecords[currentQIndex]) {
+          userRecords[currentQIndex] = {
+            qNum: currentQIndex + 1,
+            questionText: formatQuestionText(q),
+            isCorrect: true,
+            firstWrongAns: null,
+            correctAns: formatAnswerText(q)
+          };
+        }
+      } else {
+        wrongAttempts++;
+
+        // 紀錄第一次答錯的答案
+        if (!userRecords[currentQIndex]) {
+          userRecords[currentQIndex] = {
+            qNum: currentQIndex + 1,
+            questionText: formatQuestionText(q),
+            isCorrect: false,
+            firstWrongAns: `${userW > 0 ? userW + ' ' : ''}${userN}/${userD}`,
+            correctAns: formatAnswerText(q)
+          };
+        }
+
+        // 清空輸入欄
+        document.getElementById('ansWhole').value = '';
+        document.getElementById('ansNum').value = '';
+        document.getElementById('ansDen').value = '';
+
+        feedbackBox.style.display = 'block';
+
+        if (wrongAttempts < 3) {
+          // 答錯 1-2 次：黃色底色
+          feedbackBox.className = 'feedback-box yellow-hint';
+          let hintText = q.type === 'carry' ? t.hintCarry : t.hintBorrow;
+          feedbackContent.innerHTML = `
+            <div style="font-weight:bold; margin-bottom: 4px;">${t.yellowIntro}</div>
+            <div>${hintText}</div>
+          `;
+        } else {
+          // 答錯 3 次：紅色底色 + 統一大小的分數圖解
+          feedbackBox.className = 'feedback-box red-hint';
+
+          let processStepText = "";
+          let diagramHTML = "";
+
+          if (q.type === 'carry') {
+            let carryVal = Math.floor(q.initNum / q.initDen);
+            let remVal = q.initNum % q.initDen;
+            
+            processStepText = `
+              <div class="step-equation">
+                ${renderFractionHTML(q.initWhole, q.initNum, q.initDen)}
+                <span>=</span>
+                ${q.initWhole > 0 ? `<span>${q.initWhole} +</span>` : ''}
+                <span>( ${carryVal} + </span>${renderFractionHTML(0, remVal, q.initDen)}<span> )</span>
+                <span>=</span>
+                ${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}
+              </div>
+            `;
+
+            let stepCarryMsg = t.diagramStepCarry
+              .replace('{num}', q.initNum)
+              .replace('{den}', q.initDen)
+              .replace('{carry}', carryVal)
+              .replace('{rem}', remVal);
+
+            diagramHTML = `
+              <div class="diagram-box">
+                <div class="diagram-title">${t.diagramTitleCarry}</div>
+                <div class="diagram-flow">
+                  <div class="diagram-step">${renderFractionHTML(q.initWhole, q.initNum, q.initDen)}</div>
+                  <span class="diagram-arrow">➔</span>
+                  <div class="diagram-step">
+                    <span style="font-size:0.9rem; color:#2563EB;">${stepCarryMsg}</span>
+                  </div>
+                  <span class="diagram-arrow">➔</span>
+                  <div class="diagram-step" style="background:#ECFDF5; border-color:#10B981;">
+                    <strong style="color:#059669;">${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}</strong>
+                  </div>
+                </div>
+              </div>
+            `;
+
+          } else {
+            // 退位題型過程 (支援退位 1 次或 2 次)
+            if (q.borrowTimes === 2) {
+              processStepText = `
+                <div class="step-equation">
+                  ${renderFractionHTML(q.initWhole, q.initNum, q.initDen)}
+                  <span>=</span>
+                  <span>( ${q.initWhole} - 2 ) + ( 2 × </span>${renderFractionHTML(0, q.initDen, q.initDen)}<span> ${q.initNum > 0 ? '+ ' + renderFractionHTML(0, q.initNum, q.initDen) : ''} )</span>
+                  <span>=</span>
+                  ${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}
+                </div>
+              `;
+
+              let stepBorrowMsg2 = t.diagramStepBorrow2
+                .replace('{doubleDen}', q.initDen * 2)
+                .replace('{den}', q.initDen);
+
+              diagramHTML = `
+                <div class="diagram-box">
+                  <div class="diagram-title">${t.diagramTitleBorrow}</div>
+                  <div class="diagram-flow">
+                    <div class="diagram-step">${renderFractionHTML(q.initWhole, q.initNum, q.initDen)}</div>
+                    <span class="diagram-arrow">➔</span>
+                    <div class="diagram-step">
+                      <span style="font-size:0.9rem; color:#2563EB;">${stepBorrowMsg2}</span>
+                    </div>
+                    <span class="diagram-arrow">➔</span>
+                    <div class="diagram-step" style="background:#ECFDF5; border-color:#10B981;">
+                      <strong style="color:#059669;">${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}</strong>
+                    </div>
+                  </div>
+                </div>
+              `;
+            } else {
+              processStepText = `
+                <div class="step-equation">
+                  ${renderFractionHTML(q.initWhole, q.initNum, q.initDen)}
+                  <span>=</span>
+                  <span>( ${q.initWhole} - 1 ) + ( 1 ${q.initNum > 0 ? '+ ' + renderFractionHTML(0, q.initNum, q.initDen) : ''} )</span>
+                  <span>=</span>
+                  ${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}
+                </div>
+              `;
+
+              let stepBorrowMsg1 = t.diagramStepBorrow1
+                .replace(/{den}/g, q.initDen);
+
+              diagramHTML = `
+                <div class="diagram-box">
+                  <div class="diagram-title">${t.diagramTitleBorrow}</div>
+                  <div class="diagram-flow">
+                    <div class="diagram-step">${renderFractionHTML(q.initWhole, q.initNum, q.initDen)}</div>
+                    <span class="diagram-arrow">➔</span>
+                    <div class="diagram-step">
+                      <span style="font-size:0.9rem; color:#2563EB;">${stepBorrowMsg1}</span>
+                    </div>
+                    <span class="diagram-arrow">➔</span>
+                    <div class="diagram-step" style="background:#ECFDF5; border-color:#10B981;">
+                      <strong style="color:#059669;">${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}</strong>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
+          }
+
+          feedbackContent.innerHTML = `
+            <div style="font-weight:bold; font-size:1.05rem; margin-bottom:8px;">${t.redIntro}</div>
+            <div>${processStepText}</div>
+            <div style="margin-top:12px; font-weight:bold; display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.05rem; color:#991B1B;">${t.correctAnsLabel}</span>
+              ${renderFractionHTML(q.targetWhole, q.targetNum, q.targetDen)}
+            </div>
+            ${diagramHTML}
+          `;
+
+          btnSubmit.style.display = 'none';
+          btnNextLeft.style.display = 'inline-flex';
+        }
+      }
+    }
+
+    function nextQuestion() {
+      currentQIndex++;
+      if (currentQIndex < 10) {
+        showQuestion();
+      } else {
+        finishQuiz();
+      }
+    }
+
+    function formatQuestionText(q) {
+      const t = translations[currentLang];
+      if (q.type === 'carry') {
+        return `${q.initWhole > 0 ? q.initWhole + ' ' : ''}${q.initNum}/${q.initDen}`;
+      } else {
+        return `${t.lblBorrow}(${q.borrowTimes}): ${q.initWhole}${q.initNum > 0 ? ' ' + q.initNum + '/' + q.initDen : ''}`;
+      }
+    }
+
+    function formatAnswerText(q) {
+      return `${q.targetWhole > 0 ? q.targetWhole + ' ' : ''}${q.targetNum}/${q.targetDen}`;
+    }
+
+    // 分析報告結算
+    function finishQuiz() {
+      endTime = new Date();
+      switchPage('reportPage');
+
+      const t = translations[currentLang];
+      const durationSec = Math.round((endTime - startTime) / 1000);
+      const correctCount = userRecords.filter(r => r.isCorrect).length;
+      const accuracy = Math.round((correctCount / 10) * 100);
+
+      document.getElementById('valStartTime').innerText = formatDate(startTime);
+      document.getElementById('valEndTime').innerText = formatDate(endTime);
+      document.getElementById('valDuration').innerText = `${durationSec}s`;
+
+      document.getElementById('valCorrectCount').innerText = `${correctCount} / 10`;
+      document.getElementById('valAccuracy').innerText = `${accuracy}%`;
+
+      let catName = t.opt1Title;
+      if (currentMode === 'borrow') catName = t.opt2Title;
+      if (currentMode === 'mixed') catName = t.opt3Title;
+      document.getElementById('valCategoryName').innerText = `1. ${catName}`;
+      document.getElementById('valCategoryScore').innerText = `${correctCount} / 10 (${accuracy}%)`;
+
+      const correctList = document.getElementById('correctList');
+      const wrongList = document.getElementById('wrongList');
+
+      correctList.innerHTML = '';
+      wrongList.innerHTML = '';
+
+      userRecords.forEach((rec) => {
+        const item = document.createElement('div');
+        if (rec.isCorrect) {
+          item.className = 'q-item correct';
+          item.innerHTML = `
+            <span>Q${rec.qNum}: ${rec.questionText}</span>
+            <span>Ans: ${rec.correctAns}</span>
+          `;
+          correctList.appendChild(item);
+        } else {
+          item.className = 'q-item incorrect';
+          item.innerHTML = `
+            <span>Q${rec.qNum}: ${rec.questionText}</span>
+            <span>Your Ans: ${rec.firstWrongAns} | Correct: ${rec.correctAns}</span>
+          `;
+          wrongList.appendChild(item);
+        }
+      });
+    }
+
+    function formatDate(date) {
+      const pad = (n) => n.toString().padStart(2, '0');
+      return `${pad(date.getDate())}/${pad(date.getMonth()+1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+
+    function downloadReportImage() {
+      const element = document.getElementById('reportCardArea');
+      html2canvas(element).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `Fraction_Report_${Date.now()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
+
+    function confirmRetryModal() {
+      document.getElementById('retryModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('retryModal').style.display = 'none';
+    }
+
+    function restartQuiz() {
+      closeModal();
+      startQuiz(currentMode);
+    }
+
+    function goHome() {
+      document.getElementById('langContainer').style.display = 'inline-block';
+      switchPage('homePage');
+    }
+
+    function switchPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      window.scrollTo(0,0);
+    }
+
+    // 初始載入
+    changeLanguage('zh');
+  </script>
+</body>
+</html>
