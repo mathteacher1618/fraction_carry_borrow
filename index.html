@@ -278,6 +278,21 @@
       -moz-appearance: textfield;
     }
 
+    /* 固定分母顯示樣式 */
+    .static-den-box {
+      width: 65px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      border: 1.5px solid #CBD5E0;
+      border-radius: 8px;
+      background-color: #F7FAFC;
+      color: #2D3748;
+      font-weight: bold;
+    }
+
     .input-whole::-webkit-outer-spin-button,
     .input-whole::-webkit-inner-spin-button,
     .input-num::-webkit-outer-spin-button,
@@ -668,7 +683,10 @@
             <div class="fraction-input-group">
               <input type="number" min="0" inputmode="numeric" class="input-num" id="ansNum" placeholder="分子" oninput="limitPositiveInt(this)">
               <div class="line"></div>
-              <input type="number" min="0" inputmode="numeric" class="input-den" id="ansDen" placeholder="分母" oninput="limitPositiveInt(this)">
+              <!-- 動態切換：輸入框或固定文字 -->
+              <div id="denInputContainer">
+                <input type="number" min="0" inputmode="numeric" class="input-den" id="ansDen" placeholder="分母" oninput="limitPositiveInt(this)">
+              </div>
             </div>
             <span class="no-simplify-text" id="noSimplifyText" style="display:inline;">(不用約簡)</span>
           </div>
@@ -905,7 +923,10 @@
       // 調整輸入框 Placeholder
       document.getElementById('ansWhole').placeholder = t.phWhole;
       document.getElementById('ansNum').placeholder = t.phNum;
-      document.getElementById('ansDen').placeholder = t.phDen;
+      const denInput = document.getElementById('ansDen');
+      if (denInput && denInput.tagName === 'INPUT') {
+        denInput.placeholder = t.phDen;
+      }
 
       // 提示文字更新
       document.getElementById('noSimplifyText').innerText = t.noSimplify;
@@ -1011,8 +1032,8 @@
       } else {
         // ===== 退位題型 =====
         if (level === 'easy') {
-          // 初階：生成的題目是整數 (分子為 0)
-          initDen = Math.floor(Math.random() * 15) + 2; // 分母 2~16
+          // 初階（整數退位）：題目只有整數 (分子為 0)，答題時提供 1~99 的正整數分母
+          initDen = Math.floor(Math.random() * 99) + 1; // 1~99 的正整數
           initNum = 0; // 分子為 0，代表純整數
           initWhole = Math.floor(Math.random() * 5) + 2; // 整數 2~6
           borrowTimes = 1;
@@ -1098,10 +1119,20 @@
 
       document.getElementById('questionDisplay').innerHTML = qHtml;
 
+      // 配置答題區的分母部分 (若是整數退位題，顯示固定分母；否則顯示可輸入框)
+      const denContainer = document.getElementById('denInputContainer');
+      if (q.type === 'borrow' && q.initNum === 0) {
+        denContainer.innerHTML = `<div class="static-den-box" id="ansDenDisplay">${q.targetDen}</div>`;
+      } else {
+        denContainer.innerHTML = `<input type="number" min="0" inputmode="numeric" class="input-den" id="ansDen" placeholder="${t.phDen}" oninput="limitPositiveInt(this)">`;
+      }
+
       // 清空輸入欄
       document.getElementById('ansWhole').value = '';
       document.getElementById('ansNum').value = '';
-      document.getElementById('ansDen').value = '';
+      if (document.getElementById('ansDen')) {
+        document.getElementById('ansDen').value = '';
+      }
       
       document.getElementById('feedbackBox').style.display = 'none';
       document.getElementById('btnSubmit').style.display = 'block';
@@ -1130,7 +1161,14 @@
 
       const userW = parseInt(document.getElementById('ansWhole').value) || 0;
       const userN = parseInt(document.getElementById('ansNum').value) || 0;
-      const userD = parseInt(document.getElementById('ansDen').value) || 0;
+      
+      // 若為整數退位，固定分母由系統讀取；否則由輸入框讀取
+      let userD = 0;
+      if (q.type === 'borrow' && q.initNum === 0) {
+        userD = q.targetDen;
+      } else {
+        userD = parseInt(document.getElementById('ansDen').value) || 0;
+      }
 
       // 判定是否正確：支援全假分數 (如 0 8/3) 或帶整數之假分數 (如 1 5/3) 等等效表達，但要求分母相同
       const totalUserVal = userW * userD + userN;
@@ -1181,7 +1219,9 @@
         // 清空輸入欄
         document.getElementById('ansWhole').value = '';
         document.getElementById('ansNum').value = '';
-        document.getElementById('ansDen').value = '';
+        if (document.getElementById('ansDen')) {
+          document.getElementById('ansDen').value = '';
+        }
 
         feedbackBox.style.display = 'block';
 
